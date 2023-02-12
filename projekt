@@ -1,0 +1,66 @@
+import unittest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.relative_locator import locate_with
+from time import sleep
+
+
+# DANE TESTOWE
+haslo = "Gmi3mi5!!"
+
+class RejestracjaNowegoUzytkownika(unittest.TestCase):
+
+    def setUp(self):
+        # WARUNKI WSTEPNE
+        #1. Otwarta strona glowna
+        self.driver = webdriver.Chrome()
+        self.driver.maximize_window()
+        self.driver.get("https://www.eobuwie.com.pl/")
+        #2. Uzytkownik niezalogowany
+        # Zamknij alert o cookies
+        self.driver.find_element(By.CLASS_NAME, "e-button--type-primary.e-button--color-brand.e-consents-alert__button.e-button").click()
+        sleep(2)
+
+    def testBrakPodaniaImienia(self):
+        #1. Kliknij zarejestruj
+        self.driver.find_element(By.PARTIAL_LINK_TEXT, "Zarejestruj").click()
+        #2. Wpisz nazwisko
+        nazwisko = self.driver.find_element(By.ID, "lastname")
+        nazwisko.send_keys("Kowalski")
+        sleep(1)
+        #3. Wpisz adres e-mail
+        adres_email = self.driver.find_element(By.ID,"email_address")
+        adres_email.send_keys("kowalski.jozef1959@gmail.com")
+        sleep(1)
+        #4. Wpisz haslo (min. 6 znakow)
+        password_input = self.driver.find_element(By.ID, "password")
+        password_input.send_keys(haslo)
+        sleep(1)
+        #5. Wpisz ponownie haslo w celu potwierdzenia
+        password_confirmation = self.driver.find_element(By.ID,"confirmation")
+        password_confirmation.send_keys(haslo)
+        sleep(1)
+        #6. Zaznacz "Oswiadczam, ze zapoznalem sie z trescia Regulaminu serwisu i akceptuje jego postanowienia."
+        self.driver.find_element(By.XPATH, '//label[@class="checkbox-wrapper__label"]').click()
+        sleep(1)
+        #7. Kliknij "Zaloz nowe konto" (tylko dla przypadkow negatywnych!)
+        self.driver.find_element(By.XPATH, '//button[@data-testid="register-create-account-button"]').click()
+        # OCZEKIWANY REZULTAT #
+        # Uzytkownik otrzymuje informacje "To pole jest wymagane" pod imieniem
+        #1. Szukam pola imie
+        imie = self.driver.find_element(By.NAME, "firstname")
+        #2. Szukam spana z bledem obok pola imie (nad nazwiskiem)
+        error_span = self.driver.find_element(locate_with(By.XPATH, '//span[@class="form-error"]').near(imie))
+        error_span2 = self.driver.find_element(locate_with(By.XPATH, '//span[@class="form-error"]').above(nazwisko))
+        # Sprawdzam, czy obie metody wskazuja na ten sam element
+        self.assertEqual(error_span.id, error_span2.id)
+        #3. Sprawdzam, czy jest tylko jeden taki span
+        errory = self.driver.find_elements(By.XPATH, '//span[@class="form-error"]')
+        liczba_errorow = len(errory)
+        self.assertEqual(liczba_errorow, 1)
+        #4. Sprawdzam, czy tresc tego spana brzmi "To pole jest wymagane"
+        self.assertEqual(error_span.text, "To pole jest wymagane")
+        sleep(3)
+
+if __name__ == '__main__':
+    unittest.main()
